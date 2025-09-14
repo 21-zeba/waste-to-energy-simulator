@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Waste to Energy Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .progress-bar {
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #22c55e;
+            transition: width 0.5s ease-in-out;
+            border-radius: 9999px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center p-4 sm:p-8 min-h-screen">
+
+    <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-10 max-w-5xl w-full">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2">Advanced Waste to Energy Simulator</h1>
+        <p class="text-center text-gray-600 mb-8">
+            Estimate energy output from various waste types using advanced parameters and a dynamic efficiency model.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Input Parameters</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="wasteIntake" class="block text-sm font-medium text-gray-700">Waste Intake (tons/day)</label>
+                        <input type="number" id="wasteIntake" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50 p-2" placeholder="e.g., 100" value="100">
+                    </div>
+                    <div>
+                        <label for="wasteType" class="block text-sm font-medium text-gray-700">Waste Type</label>
+                        <select id="wasteType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50 p-2">
+                            <option value="MSW">Municipal Solid Waste (MSW)</option>
+                            <option value="Agri">Agricultural Waste</option>
+                            <option value="Plastics">Plastics</option>
+                            <option value="Biomass">Biomass</option>
+                            <option value="Paper">Paper</option>
+                            <option value="Food">Food Waste</option>
+                            <option value="Tires">Rubber Tires</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="calorificValue" class="block text-sm font-medium text-gray-700">Calorific Value (MJ/kg)</label>
+                        <input type="number" id="calorificValue" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50 p-2" placeholder="e.g., 10" value="10">
+                    </div>
+                    <div>
+                        <label for="moistureContent" class="block text-sm font-medium text-gray-700">Moisture Content (%)</label>
+                        <input type="number" id="moistureContent" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50 p-2" placeholder="e.g., 30" value="30">
+                    </div>
+                    <div>
+                        <label for="processTemp" class="block text-sm font-medium text-gray-700">Process Temperature (°C)</label>
+                        <input type="number" id="processTemp" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring focus:ring-green-500 focus:ring-opacity-50 p-2" placeholder="e.g., 850" value="850">
+                    </div>
+                </div>
+                <button onclick="runSimulation()" class="mt-8 w-full px-4 py-3 bg-green-600 text-white font-bold rounded-lg shadow-lg hover:bg-green-700 transition-colors transform hover:scale-105">
+                    Run Simulation
+                </button>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Simulation Results</h2>
+
+                <div id="processFlow" class="mb-6 space-y-2">
+                    <div id="progressContainer" class="progress-bar mb-4">
+                        <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span id="inputStepIcon" class="p-2 rounded-full bg-blue-500 text-white font-bold text-sm transition-colors">1</span>
+                        <p id="inputStepText" class="text-gray-600 font-medium">Waste Input</p>
+                    </div>
+                    <div class="flex justify-center my-2">
+                        <svg class="h-6 w-6 text-gray-400 transform rotate-90 md:rotate-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span id="conversionStepIcon" class="p-2 rounded-full bg-gray-400 text-white font-bold text-sm transition-colors">2</span>
+                        <p id="conversionStepText" class="text-gray-400">Conversion</p>
+                    </div>
+                    <div class="flex justify-center my-2">
+                        <svg class="h-6 w-6 text-gray-400 transform rotate-90 md:rotate-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span id="outputStepIcon" class="p-2 rounded-full bg-gray-400 text-white font-bold text-sm transition-colors">3</span>
+                        <p id="outputStepText" class="text-gray-400">Energy Output</p>
+                    </div>
+                </div>
+
+                <div id="resultsSummary" class="mt-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-800 hidden">
+                    <h4 class="font-bold text-lg mb-2">Estimated Output</h4>
+                    <p>Total Dry Waste Mass: <span id="dryWasteMassValue" class="font-semibold"></span> kg</p>
+                    <p>Estimated Efficiency: <span id="efficiencyValue" class="font-semibold"></span> %</p>
+                    <p>Total Energy Output: <span id="energyOutputValue" class="font-semibold"></span> kWh</p>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-semibold text-center mb-2">Energy Output vs. Temperature</h3>
+                    <canvas id="energyChart"></canvas>
+                </div>
+
+                <div id="messageBox" class="mt-6 p-4 rounded-lg hidden text-sm transition-opacity duration-300"></div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder values for simulation based on waste type
+        const wasteData = {
+            MSW: { calorificValue: 10, moistureContent: 30 },
+            Agri: { calorificValue: 15, moistureContent: 20 },
+            Plastics: { calorificValue: 40, moistureContent: 5 },
+            Biomass: { calorificValue: 12, moistureContent: 45 },
+            Paper: { calorificValue: 16, moistureContent: 10 },
+            Food: { calorificValue: 5, moistureContent: 75 },
+            Tires: { calorificValue: 35, moistureContent: 2 },
+        };
+
+        // Selectors for DOM elements
+        const wasteTypeInput = document.getElementById('wasteType');
+        const calorificValueInput = document.getElementById('calorificValue');
+        const moistureContentInput = document.getElementById('moistureContent');
+        const wasteIntakeInput = document.getElementById('wasteIntake');
+        const processTempInput = document.getElementById('processTemp');
+        const messageBox = document.getElementById('messageBox');
+        const progressFill = document.getElementById('progressFill');
+        const resultsSummary = document.getElementById('resultsSummary');
+
+        let energyChart;
+
+        window.onload = function() {
+            const ctx = document.getElementById('energyChart').getContext('2d');
+            energyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Energy Output (kWh)',
+                        data: [],
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                        tension: 0.4,
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Energy Output (kWh)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Process Temperature (°C)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Output: ${context.raw.toFixed(2)} kWh`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Set initial values from MSW data
+            const initialData = wasteData['MSW'];
+            calorificValueInput.value = initialData.calorificValue;
+            moistureContentInput.value = initialData.moistureContent;
+        };
+
+        wasteTypeInput.addEventListener('change', (event) => {
+            const selectedType = event.target.value;
+            const data = wasteData[selectedType];
+            if (data) {
+                calorificValueInput.value = data.calorificValue;
+                moistureContentInput.value = data.moistureContent;
+            }
+        });
+
+        function showMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.className = 'mt-6 p-4 rounded-lg transition-opacity duration-300';
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-700', 'border', 'border-red-400');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'text-green-700', 'border', 'border-green-400');
+            }
+            messageBox.classList.remove('hidden');
+        }
+
+        // Advanced efficiency model
+        function getEfficiency(temp) {
+            // A sigmoid-like curve to model efficiency
+            const maxEff = 0.45; // Max realistic thermal efficiency
+            const minEff = 0.20; // Min efficiency for WtE
+            const midpoint = 850;
+            const steepness = 0.02;
+            const eff = minEff + (maxEff - minEff) / (1 + Math.exp(-steepness * (temp - midpoint)));
+            return eff;
+        }
+
+        function runSimulation() {
+            const wasteIntake = parseFloat(wasteIntakeInput.value);
+            const calorificValue = parseFloat(calorificValueInput.value);
+            const moistureContent = parseFloat(moistureContentInput.value);
+            const processTemp = parseFloat(processTempInput.value);
+
+            // Validation
+            if (isNaN(wasteIntake) || isNaN(calorificValue) || isNaN(moistureContent) || isNaN(processTemp) || wasteIntake <= 0 || calorificValue <= 0 || moistureContent < 0 || moistureContent > 100) {
+                showMessage("Please enter valid, positive numbers for Waste Intake and Calorific Value, and a Moisture Content between 0 and 100%.", "error");
+                return;
+            }
+
+            // Reset UI
+            messageBox.classList.add('hidden');
+            resultsSummary.classList.add('hidden');
+            progressFill.style.width = '0%';
+            const icons = document.querySelectorAll('#processFlow span');
+            icons.forEach(icon => icon.classList.replace('bg-blue-500', 'bg-gray-400'));
+            const texts = document.querySelectorAll('#processFlow p');
+            texts.forEach(text => text.classList.replace('text-gray-600', 'text-gray-400'));
+
+            // Simulation with visual steps
+            const totalSteps = 4;
+            let currentStep = 0;
+
+            const updateProgress = () => {
+                currentStep++;
+                progressFill.style.width = `${(currentStep / totalSteps) * 100}%`;
+            };
+
+            // Step 1: Input
+            setTimeout(() => {
+                document.getElementById('inputStepIcon').classList.replace('bg-gray-400', 'bg-blue-500');
+                document.getElementById('inputStepText').classList.replace('text-gray-400', 'text-gray-600');
+                updateProgress();
+            }, 500);
+
+            // Step 2: Processing
+            setTimeout(() => {
+                document.getElementById('conversionStepIcon').classList.replace('bg-gray-400', 'bg-blue-500');
+                document.getElementById('conversionStepText').classList.replace('text-gray-400', 'text-gray-600');
+                updateProgress();
+
+                // Core Calculation
+                const dryWasteMass = wasteIntake * 1000 * (1 - moistureContent / 100);
+                const totalEnergyMJ = dryWasteMass * calorificValue;
+                const efficiency = getEfficiency(processTemp);
+                const energyOutputKWh = totalEnergyMJ * efficiency * 0.277778; // 1 MJ = 0.277778 kWh
+
+                // Update summary results
+                document.getElementById('dryWasteMassValue').textContent = dryWasteMass.toFixed(2);
+                document.getElementById('efficiencyValue').textContent = (efficiency * 100).toFixed(2);
+                document.getElementById('energyOutputValue').textContent = energyOutputKWh.toFixed(2);
+            }, 1500);
+
+            // Step 3: Graphing
+            setTimeout(() => {
+                document.getElementById('outputStepIcon').classList.replace('bg-gray-400', 'bg-blue-500');
+                document.getElementById('outputStepText').classList.replace('text-gray-400', 'text-gray-600');
+                updateProgress();
+
+                const temps = [];
+                const outputs = [];
+                for (let i = processTemp - 200; i <= processTemp + 200; i += 25) {
+                    if (i < 500) continue;
+                    temps.push(i);
+                    const eff = getEfficiency(i);
+                    const dryWasteMass = wasteIntake * 1000 * (1 - moistureContent / 100);
+                    const totalEnergyMJ = dryWasteMass * calorificValue;
+                    const energyOutputKWh = totalEnergyMJ * eff * 0.277778;
+                    outputs.push(energyOutputKWh);
+                }
+
+                energyChart.data.labels = temps;
+                energyChart.data.datasets[0].data = outputs;
+                energyChart.update();
+            }, 2500);
+
+            // Step 4: Finalize
+            setTimeout(() => {
+                updateProgress();
+                resultsSummary.classList.remove('hidden');
+                showMessage("Simulation complete! Results and graph have been updated.", "success");
+            }, 3000);
+        }
+    </script>
+
+</body>
+</html>
